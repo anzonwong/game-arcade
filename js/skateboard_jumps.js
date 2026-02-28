@@ -21,7 +21,7 @@ class MainMenuScene extends Phaser.Scene {
         this.cameras.main.setBackgroundColor('#1a1a2e');
         this.add.image(GAME_W/2, GAME_H/2, 'bg_sky');
         this.add.text(GAME_W/2, 55, 'SKATEBOARD\nJUMPS', { fontSize:'18px', fontFamily:'monospace', color:'#FFD700', align:'center', stroke:'#000', strokeThickness:3, lineSpacing:4 }).setOrigin(0.5);
-        this.add.image(GAME_W/2, 125, getSkaterKey()).setScale(2.5);
+        this.add.image(GAME_W/2, 125, getSkaterKey(this)).setScale(2.5);
 
         const bx = GAME_W / 2;
         let by = 175;
@@ -58,6 +58,7 @@ class MainMenuScene extends Phaser.Scene {
         by += 25;
         makeBtn(this, bx, by+=gap, '    RACE    ', '#CC6633', () => this.scene.start('Race'));
         makeBtn(this, bx, by+=gap, ' CHARACTERS ', '#336644', () => this.scene.start('CharSelect'));
+        makeBtn(this, bx, by+=gap, '  WARDROBE  ', '#885588', () => this.scene.start('Wardrobe'));
         makeBtn(this, bx, by+=gap, '    SHOP    ', '#886622', () => this.scene.start('Shop'));
         makeBtn(this, bx, by+=gap, '    CHAT    ', '#664488', () => this.scene.start('Chat'));
         makeBtn(this, bx, by+=gap, 'INSTRUCTIONS', '#555566', () => this.scene.start('Instructions'));
@@ -105,7 +106,7 @@ class CharSelectScene extends Phaser.Scene {
 
         const unlocked = SaveData.get('unlockedChars');
         const selected = SaveData.get('selectedChar');
-        this.previewImg = this.add.image(GAME_W/2, 100, getSkaterKey()).setScale(3);
+        this.previewImg = this.add.image(GAME_W/2, 100, getSkaterKey(this)).setScale(3);
         this.nameLabel = this.add.text(GAME_W/2, 135, CHARACTERS[selected].name, { fontSize:'10px', fontFamily:'monospace', color:'#fff' }).setOrigin(0.5);
 
         const startY = 165;
@@ -186,7 +187,7 @@ class ShopScene extends Phaser.Scene {
         });
 
         // Preview
-        this.add.image(GAME_W/2, 430, getSkaterKey()).setScale(2.5);
+        this.add.image(GAME_W/2, 430, getSkaterKey(this)).setScale(2.5);
         makeBtn(this, GAME_W/2, 460, '  BACK  ', '#555566', () => this.scene.start('MainMenu'));
     }
 }
@@ -394,6 +395,150 @@ class HighScoresScene extends Phaser.Scene {
 }
 
 // ============================================================
+// WARDROBE - Mix and match hats, tops, bottoms
+// ============================================================
+class WardrobeScene extends Phaser.Scene {
+    constructor() { super('Wardrobe'); }
+    create() {
+        this.cameras.main.setBackgroundColor('#1a1a2e');
+        makeTitle(this, 'WARDROBE');
+
+        this.curHat = SaveData.get('selectedHat') || 0;
+        this.curTop = SaveData.get('selectedTop') || 0;
+        this.curBottom = SaveData.get('selectedBottom') || 0;
+        this.charIdx = SaveData.get('selectedChar');
+        this.boardIdx = SaveData.get('selectedBoard');
+
+        // Preview character
+        const previewKey = ensureWardrobeTexture(this, this.charIdx, this.boardIdx, this.curHat, this.curTop, this.curBottom);
+        this.preview = this.add.image(GAME_W / 2, 95, previewKey).setScale(3.5);
+
+        // Tabs
+        this.tab = 0; // 0=hats, 1=tops, 2=bottoms
+        const tabY = 150;
+        this.tabBtns = [];
+        ['HATS', 'TOPS', 'BOTTOMS'].forEach((label, i) => {
+            const tx = 45 + i * 70;
+            const btn = this.add.text(tx, tabY, label, {
+                fontSize: '9px', fontFamily: 'monospace', color: i === 0 ? '#FFD700' : '#888',
+                backgroundColor: i === 0 ? '#333355' : '#222233', padding: { x: 8, y: 4 }
+            }).setOrigin(0.5).setInteractive();
+            btn.on('pointerdown', () => { audio.playClick(); this.tab = i; this._refreshTab(); });
+            this.tabBtns.push(btn);
+        });
+
+        // Coins display
+        this.coinsText = this.add.text(GAME_W - 10, tabY, '$' + SaveData.get('totalCoins'), {
+            fontSize: '9px', fontFamily: 'monospace', color: '#FFD700'
+        }).setOrigin(1, 0.5);
+
+        // Item list area
+        this.itemGroup = [];
+        this._refreshTab();
+
+        makeBtn(this, GAME_W / 2, 440, '  BACK  ', '#555566', () => this.scene.start('MainMenu'));
+    }
+
+    _refreshTab() {
+        // Update tab button colors
+        this.tabBtns.forEach((btn, i) => {
+            btn.setColor(i === this.tab ? '#FFD700' : '#888');
+            btn.setBackgroundColor(i === this.tab ? '#333355' : '#222233');
+        });
+
+        // Clear old items
+        this.itemGroup.forEach(o => o.destroy());
+        this.itemGroup = [];
+
+        const items = [HATS, TOPS, BOTTOMS][this.tab];
+        const unlockKey = ['unlockedHats', 'unlockedTops', 'unlockedBottoms'][this.tab];
+        const selectKey = ['selectedHat', 'selectedTop', 'selectedBottom'][this.tab];
+        const curVal = [this.curHat, this.curTop, this.curBottom][this.tab];
+        const unlocked = SaveData.get(unlockKey) || [0];
+
+        items.forEach((item, i) => {
+            const y = 178 + i * 40;
+            const isUnlocked = unlocked.includes(i);
+            const isSelected = curVal === i;
+
+            // Item background
+            const bg = this.add.rectangle(GAME_W / 2, y, GAME_W - 30, 34, isSelected ? 0x334466 : 0x222244, 0.8)
+                .setStrokeStyle(1, isSelected ? 0x6688CC : 0x444466);
+            this.itemGroup.push(bg);
+
+            // Mini preview of this item
+            const previewKey = ensureWardrobeTexture(this, this.charIdx, this.boardIdx,
+                this.tab === 0 ? i : this.curHat,
+                this.tab === 1 ? i : this.curTop,
+                this.tab === 2 ? i : this.curBottom);
+            const miniPrev = this.add.image(30, y, previewKey).setScale(1.5);
+            this.itemGroup.push(miniPrev);
+
+            // Item name
+            const nameText = this.add.text(55, y - 8, item.name, {
+                fontSize: '9px', fontFamily: 'monospace', color: isSelected ? '#FFD700' : (isUnlocked ? '#ddd' : '#666')
+            });
+            this.itemGroup.push(nameText);
+
+            if (isSelected) {
+                const eqText = this.add.text(55, y + 5, 'EQUIPPED', {
+                    fontSize: '7px', fontFamily: 'monospace', color: '#44FF44'
+                });
+                this.itemGroup.push(eqText);
+            } else if (isUnlocked) {
+                const eqBtn = this.add.text(GAME_W - 28, y, 'EQUIP', {
+                    fontSize: '8px', fontFamily: 'monospace', color: '#88CCFF',
+                    backgroundColor: '#334455', padding: { x: 6, y: 3 }
+                }).setOrigin(1, 0.5).setInteractive();
+                eqBtn.on('pointerdown', () => {
+                    audio.playClick();
+                    this._selectItem(this.tab, i);
+                });
+                this.itemGroup.push(eqBtn);
+            } else {
+                const costText = this.add.text(55, y + 5, '$' + item.cost, {
+                    fontSize: '7px', fontFamily: 'monospace', color: '#FFD700'
+                });
+                this.itemGroup.push(costText);
+
+                const coins = SaveData.get('totalCoins') || 0;
+                if (coins >= item.cost) {
+                    const buyBtn = this.add.text(GAME_W - 28, y, 'BUY', {
+                        fontSize: '8px', fontFamily: 'monospace', color: '#88FF88',
+                        backgroundColor: '#336633', padding: { x: 8, y: 3 }
+                    }).setOrigin(1, 0.5).setInteractive();
+                    buyBtn.on('pointerdown', () => {
+                        audio.playCoin();
+                        SaveData.set('totalCoins', SaveData.get('totalCoins') - item.cost);
+                        const ul = SaveData.get(unlockKey);
+                        ul.push(i);
+                        SaveData.set(unlockKey, ul);
+                        this._selectItem(this.tab, i);
+                    });
+                    this.itemGroup.push(buyBtn);
+                } else {
+                    const lockText = this.add.text(GAME_W - 28, y, 'LOCKED', {
+                        fontSize: '7px', fontFamily: 'monospace', color: '#FF4444'
+                    }).setOrigin(1, 0.5);
+                    this.itemGroup.push(lockText);
+                }
+            }
+        });
+    }
+
+    _selectItem(tab, idx) {
+        if (tab === 0) { this.curHat = idx; SaveData.set('selectedHat', idx); }
+        else if (tab === 1) { this.curTop = idx; SaveData.set('selectedTop', idx); }
+        else { this.curBottom = idx; SaveData.set('selectedBottom', idx); }
+        // Update preview
+        const key = ensureWardrobeTexture(this, this.charIdx, this.boardIdx, this.curHat, this.curTop, this.curBottom);
+        this.preview.setTexture(key);
+        this.coinsText.setText('$' + SaveData.get('totalCoins'));
+        this._refreshTab();
+    }
+}
+
+// ============================================================
 // MAIN GAME SCENE
 // ============================================================
 class GameScene extends Phaser.Scene {
@@ -428,7 +573,7 @@ class GameScene extends Phaser.Scene {
 
         this.obstacles = this.add.group(); this.coinSprites = this.add.group(); this.powerups = this.add.group();
         this.playerShadow = this.add.image(LANE_X[2], PLAYER_Y+14, 'shadow');
-        this.player = this.add.image(LANE_X[2], PLAYER_Y, getSkaterKey());
+        this.player = this.add.image(LANE_X[2], PLAYER_Y, getSkaterKey(this));
         this.playerTargetX = LANE_X[2]; this.playerVisualOffsetY = 0;
 
         this.hud = {};
@@ -694,7 +839,7 @@ class RaceScene extends Phaser.Scene {
 
         // Player
         this.playerShadow = this.add.image(LANE_X[2], PLAYER_Y+14, 'shadow');
-        this.player = this.add.image(LANE_X[2], PLAYER_Y, getSkaterKey());
+        this.player = this.add.image(LANE_X[2], PLAYER_Y, getSkaterKey(this));
         this.playerTargetX = LANE_X[2];
 
         // HUD

@@ -30,6 +30,8 @@ const SaveData = {
         highscore: 0, totalCoins: 0, selectedChar: 0, selectedBoard: 0,
         selectedOutfit: 0, musicTrack: 0, unlockedChars: [0], unlockedBoards: [0],
         unlockedOutfits: [0], raceWins: 0, racesPlayed: 0,
+        selectedHat: 0, selectedTop: 0, selectedBottom: 0,
+        unlockedHats: [0,1], unlockedTops: [0], unlockedBottoms: [0],
         jttHighscore: 0, jttGamesPlayed: 0, jttMusicTrack: 0,
         playerName: '', selectedDifficulty: 1,
         highscoreEasy: 0, highscoreNormal: 0, highscoreHard: 0, highscoreImpossible: 0
@@ -258,6 +260,31 @@ const OUTFITS = [
     { name: 'Ninja', mod: { shirt: 0x111111, pants: 0x111111, mask: true }, cost: 200 },
 ];
 
+// Mix-and-match wardrobe parts
+const HATS = [
+    { name: 'None', cost: 0 },
+    { name: 'Cap', color: 0xCC3333, cost: 0 },
+    { name: 'Beanie', color: 0x4466AA, cost: 30 },
+    { name: 'Crown', color: 0xFFDD00, cost: 200 },
+    { name: 'Headband', color: 0xFF4444, cost: 40 },
+    { name: 'Mask', color: 0x111111, cost: 80 },
+];
+const TOPS = [
+    { name: 'Default', cost: 0 },
+    { name: 'Hoodie', color: 0x555577, cost: 40 },
+    { name: 'Tank Top', noSleeves: true, cost: 30 },
+    { name: 'Suit Jacket', color: 0x222233, tie: true, cost: 120 },
+    { name: 'Hawaiian', color: 0x22AA55, floral: true, cost: 80 },
+    { name: 'Ninja Gi', color: 0x111111, cost: 100 },
+];
+const BOTTOMS = [
+    { name: 'Default', cost: 0 },
+    { name: 'Jeans', color: 0x335588, cost: 25 },
+    { name: 'Suit Pants', color: 0x222233, cost: 60 },
+    { name: 'Shorts', short: true, cost: 35 },
+    { name: 'Cargo Pants', color: 0x556633, cost: 50 },
+];
+
 const MUSIC_TRACKS = [
     { name: 'Chill Ride', melody: [262,294,330,392,440,392,330,294, 330,392,440,523,440,392,330,392, 440,392,330,262,294,330,392,330, 294,262,294,330,294,262,220,262], bass: [131,131,165,165,196,196,220,220, 175,175,196,196,220,220,262,262, 220,220,196,196,165,165,131,131, 147,147,165,165,147,147,110,131], tempo: 0.18 },
     { name: 'Speed Rush', melody: [330,330,440,440,523,523,440,330, 392,523,660,523,440,392,330,392, 523,660,784,660,523,440,392,440, 330,392,440,523,440,392,330,262], bass: [165,165,220,220,262,262,220,165, 196,262,330,262,220,196,165,196, 262,330,392,330,262,220,196,220, 165,196,220,262,220,196,165,131], tempo: 0.13 },
@@ -355,6 +382,68 @@ function drawSkater(g, char, board, outfit) {
     if (c.cap) { g.fillStyle(c.cap); g.fillRect(7, 0, 10, 3); }
     if (c.hair) { g.fillStyle(c.hair); g.fillRect(7, 0, 10, 2); g.fillRect(6, 2, 2, 4); g.fillRect(16, 2, 2, 4); }
     g.fillStyle(0x222222); g.fillRect(9, 3, 2, 2); g.fillRect(13, 3, 2, 2);
+}
+
+// Mix-and-match wardrobe draw function
+function drawSkaterMix(g, charIdx, boardIdx, hatIdx, topIdx, bottomIdx) {
+    const c = CHARACTERS[charIdx] || CHARACTERS[0];
+    const b = BOARDS[boardIdx] || BOARDS[0];
+    const hat = HATS[hatIdx] || HATS[0];
+    const top = TOPS[topIdx] || TOPS[0];
+    const bot = BOTTOMS[bottomIdx] || BOTTOMS[0];
+    const shirtColor = top.color || c.shirt;
+    const pantsColor = bot.color || c.pants;
+
+    // Shadow
+    g.fillStyle(0x000000, 0.15); g.fillEllipse(12, 30, 22, 6);
+    // Board
+    g.fillStyle(b.deck); g.fillRect(2, 26, 20, 4);
+    g.fillStyle(b.stripe); g.fillRect(3, 27, 18, 2);
+    g.fillStyle(b.wheels); g.fillRect(4, 30, 3, 3); g.fillRect(17, 30, 3, 3);
+    // Legs / bottoms
+    if (bot.short) {
+        g.fillStyle(pantsColor); g.fillRect(7, 18, 4, 5); g.fillRect(13, 18, 4, 5);
+        g.fillStyle(c.skin); g.fillRect(7, 23, 4, 4); g.fillRect(13, 23, 4, 4);
+    } else {
+        g.fillStyle(pantsColor); g.fillRect(7, 18, 4, 9); g.fillRect(13, 18, 4, 9);
+    }
+    // Torso
+    g.fillStyle(shirtColor); g.fillRect(6, 6, 12, 13);
+    // Tie
+    if (top.tie) { g.fillStyle(0xCC0000); g.fillRect(11, 8, 2, 10); }
+    // Floral pattern
+    if (top.floral) { g.fillStyle(0xFFFF00); g.fillRect(8,8,2,2); g.fillRect(14,10,2,2); g.fillRect(10,14,2,2); }
+    // Arms/sleeves
+    if (!top.noSleeves) { g.fillStyle(shirtColor); g.fillRect(3, 8, 4, 8); g.fillRect(17, 8, 4, 8); }
+    // Hood (for hoodie top)
+    if (topIdx === 1) { g.fillStyle(shirtColor); g.fillRect(6, 0, 12, 8); }
+    // Skin (face)
+    g.fillStyle(c.skin); g.fillRect(8, 0, 8, 7);
+    // Hat
+    if (hat.name === 'Mask') { g.fillStyle(hat.color); g.fillRect(8, 2, 8, 5); g.fillStyle(c.skin); g.fillRect(9, 3, 2, 2); g.fillRect(13, 3, 2, 2); }
+    else if (hat.name === 'Cap') { g.fillStyle(hat.color); g.fillRect(7, 0, 10, 3); }
+    else if (hat.name === 'Beanie') { g.fillStyle(hat.color); g.fillRect(7, -1, 10, 4); g.fillStyle(hat.color+0x111111); g.fillRect(8, -2, 8, 2); }
+    else if (hat.name === 'Crown') { g.fillStyle(hat.color); g.fillRect(7, -1, 10, 3); g.fillStyle(0xFFAA00); g.fillRect(7,-3,2,3); g.fillRect(11,-3,2,3); g.fillRect(15,-3,2,3); }
+    else if (hat.name === 'Headband') { g.fillStyle(hat.color); g.fillRect(7, 1, 10, 2); }
+    // Default character hair/cap if no hat selected
+    if (hat.name === 'None') {
+        if (c.cap) { g.fillStyle(c.cap); g.fillRect(7, 0, 10, 3); }
+        if (c.hair) { g.fillStyle(c.hair); g.fillRect(7, 0, 10, 2); g.fillRect(6, 2, 2, 4); g.fillRect(16, 2, 2, 4); }
+    }
+    // Eyes
+    g.fillStyle(0x222222); g.fillRect(9, 3, 2, 2); g.fillRect(13, 3, 2, 2);
+}
+
+// On-demand wardrobe texture with caching
+function getWardrobeKey(charIdx, boardIdx, hatIdx, topIdx, bottomIdx) {
+    return `ward_${charIdx}_${boardIdx}_${hatIdx}_${topIdx}_${bottomIdx}`;
+}
+function ensureWardrobeTexture(scene, charIdx, boardIdx, hatIdx, topIdx, bottomIdx) {
+    const key = getWardrobeKey(charIdx, boardIdx, hatIdx, topIdx, bottomIdx);
+    if (!scene.textures.exists(key)) {
+        createPixelTexture(scene, key, 24, 34, (g) => drawSkaterMix(g, charIdx, boardIdx, hatIdx, topIdx, bottomIdx));
+    }
+    return key;
 }
 
 function generateAllTextures(scene) {
@@ -558,7 +647,18 @@ function generateAllTextures(scene) {
     }));
 }
 
-function getSkaterKey() { return `skater_${SaveData.get('selectedChar')}_${SaveData.get('selectedBoard')}_${SaveData.get('selectedOutfit')}`; }
+function getSkaterKey(scene) {
+    const ci = SaveData.get('selectedChar');
+    const bi = SaveData.get('selectedBoard');
+    // If wardrobe is being used (any non-default part selected), use mix system
+    const hi = SaveData.get('selectedHat') || 0;
+    const ti = SaveData.get('selectedTop') || 0;
+    const bti = SaveData.get('selectedBottom') || 0;
+    if ((hi > 0 || ti > 0 || bti > 0) && scene) {
+        return ensureWardrobeTexture(scene, ci, bi, hi, ti, bti);
+    }
+    return `skater_${ci}_${bi}_${SaveData.get('selectedOutfit')}`;
+}
 
 // ============================================================
 // UI HELPERS

@@ -215,7 +215,7 @@ const config = {
     scene: [
         // Skateboard Jumps scenes (BootScene runs first, then goes to Launcher)
         BootScene, LauncherScene, MainMenuScene, InstructionsScene,
-        CharSelectScene, ShopScene, ChatScene, SettingsScene,
+        CharSelectScene, WardrobeScene, ShopScene, ChatScene, SettingsScene,
         HighScoresScene, GameScene, RaceScene,
         // Jump to the Top scenes
         JTTBootScene, JTTMenuScene, JTTInstructionsScene,
