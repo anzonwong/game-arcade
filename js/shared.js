@@ -193,6 +193,25 @@ function generateAllTextures(scene) {
         g.fillStyle(0x999999); g.fillRect(7,0,4,1); g.fillStyle(0x8888a0); g.fillRect(3,6,2,14);
     });
     createPixelTexture(scene, 'pothole', 24, 12, (g) => { g.fillStyle(0x1a1a22); g.fillEllipse(12,6,24,12); g.fillStyle(0x222230); g.fillEllipse(12,5,20,9); });
+    // Pedestrian walking across road
+    createPixelTexture(scene, 'pedestrian', 14, 24, (g) => {
+        // Head
+        g.fillStyle(0xFFCC99); g.fillRect(5, 0, 5, 5);
+        // Hair
+        g.fillStyle(0x553311); g.fillRect(5, 0, 5, 2);
+        // Eyes
+        g.fillStyle(0x222222); g.fillRect(6, 2, 1, 1); g.fillRect(8, 2, 1, 1);
+        // Body/jacket
+        g.fillStyle(0xCC4444); g.fillRect(3, 5, 9, 9);
+        // Arms
+        g.fillStyle(0xCC4444); g.fillRect(1, 6, 3, 7); g.fillRect(11, 6, 3, 7);
+        // Hands
+        g.fillStyle(0xFFCC99); g.fillRect(1, 12, 2, 2); g.fillRect(12, 12, 2, 2);
+        // Legs (walking pose)
+        g.fillStyle(0x333355); g.fillRect(4, 14, 3, 7); g.fillRect(8, 14, 3, 7);
+        // Shoes
+        g.fillStyle(0x444444); g.fillRect(3, 20, 4, 3); g.fillRect(8, 20, 4, 3);
+    });
     createPixelTexture(scene, 'coin', 12, 12, (g) => { g.fillStyle(0xFFD700); g.fillEllipse(6,6,12,12); g.fillStyle(0xFFE44D); g.fillEllipse(5,5,8,8); g.fillStyle(0xCC9900); g.fillRect(5,4,2,4); });
     const puC = { shield:0x4499FF, magnet:0xFF4444, speed_boost:0xFFFF44, slow_motion:0xAA44FF };
     Object.entries(puC).forEach(([k,c]) => createPixelTexture(scene,'pu_'+k,16,16,(g)=>{ g.fillStyle(c,0.3); g.fillEllipse(8,8,16,16); g.fillStyle(c); g.fillEllipse(8,8,12,12); g.fillStyle(0xFFFFFF,0.5); g.fillEllipse(6,6,5,5); }));

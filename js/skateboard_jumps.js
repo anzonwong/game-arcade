@@ -429,8 +429,8 @@ class GameScene extends Phaser.Scene {
     }
     _initPatterns() {
         this.easyP = [[{lane:0,type:'cone',yOff:0}],[{lane:1,type:'trash_can',yOff:0}],[{lane:2,type:'cone',yOff:0}],[{lane:3,type:'trash_can',yOff:0}],[{lane:4,type:'cone',yOff:0}]];
-        this.medP = [[{lane:0,type:'cone',yOff:0},{lane:1,type:'trash_can',yOff:0}],[{lane:2,type:'cone',yOff:0},{lane:3,type:'trash_can',yOff:0}],[{lane:1,type:'trash_can',yOff:0},{lane:4,type:'cone',yOff:0}],[{lane:0,type:'cone',yOff:0},{lane:3,type:'cone',yOff:0}]];
-        this.hardP = [[{lane:0,type:'cone',yOff:0},{lane:1,type:'trash_can',yOff:0},{lane:3,type:'pothole',yOff:-40}],[{lane:1,type:'trash_can',yOff:0},{lane:2,type:'cone',yOff:-50},{lane:4,type:'trash_can',yOff:0}],[{lane:0,type:'trash_can',yOff:0},{lane:2,type:'cone',yOff:0},{lane:3,type:'trash_can',yOff:0},{lane:4,type:'pothole',yOff:-30}]];
+        this.medP = [[{lane:0,type:'cone',yOff:0},{lane:1,type:'trash_can',yOff:0}],[{lane:2,type:'cone',yOff:0},{lane:3,type:'trash_can',yOff:0}],[{lane:1,type:'trash_can',yOff:0},{lane:4,type:'cone',yOff:0}],[{lane:0,type:'cone',yOff:0},{lane:3,type:'cone',yOff:0}],[{lane:1,type:'pedestrian',yOff:0}],[{lane:3,type:'pedestrian',yOff:0}]];
+        this.hardP = [[{lane:0,type:'cone',yOff:0},{lane:1,type:'trash_can',yOff:0},{lane:3,type:'pothole',yOff:-40}],[{lane:1,type:'trash_can',yOff:0},{lane:2,type:'cone',yOff:-50},{lane:4,type:'trash_can',yOff:0}],[{lane:0,type:'trash_can',yOff:0},{lane:2,type:'cone',yOff:0},{lane:3,type:'trash_can',yOff:0},{lane:4,type:'pothole',yOff:-30}],[{lane:2,type:'pedestrian',yOff:0},{lane:0,type:'cone',yOff:0}],[{lane:1,type:'pedestrian',yOff:0},{lane:4,type:'trash_can',yOff:0}]];
     }
 
     update(time, delta) {
@@ -458,7 +458,7 @@ class GameScene extends Phaser.Scene {
 
         this.spawnTimer+=dt; if(this.spawnTimer>=this.spawnInterval){this.spawnTimer=0;this._spawnPattern();this.spawnInterval=Math.max(0.6,2-this.difficultyPhase*0.25);}
         if(Math.random()<0.001*dt*60) this._spawnPU();
-        this.obstacles.getChildren().forEach(o=>{o.y+=this.speed*dt;if(o.y>GAME_H+60)o.destroy();});
+        this.obstacles.getChildren().forEach(o=>{o.y+=this.speed*dt;if(o.y>GAME_H+60)o.destroy();if(o.getData('type')==='pedestrian'){o.x+=o.getData('walkDir')*40*dt;if(o.x<20||o.x>GAME_W-20)o.setData('walkDir',-o.getData('walkDir'));}});
         this.coinSprites.getChildren().forEach(c=>{if(c.getData('att')&&!this.isCrashed){const dx=this.player.x-c.x,dy=this.player.y-c.y,d=Math.sqrt(dx*dx+dy*dy);if(d>2){c.x+=dx/d*400*dt;c.y+=dy/d*400*dt;}}else c.y+=this.speed*dt;if(c.y>GAME_H+30)c.destroy();c.setScale(0.8+Math.sin(time/150+c.x)*0.2,1);});
         this.powerups.getChildren().forEach(p=>{p.y+=this.speed*dt;if(p.y>GAME_H+30)p.destroy();p.setScale(1+Math.sin(time/200)*0.15);});
         if(!this.isCrashed) this._checkCollisions();
@@ -488,7 +488,7 @@ class GameScene extends Phaser.Scene {
 
     _updateDifficulty(){const th=[0,500,1500,3000,5000,8000];for(let i=th.length-1;i>=0;i--)if(this.distance>=th[i]){this.difficultyPhase=i;return;}}
     _getPattern(){let p=[...this.easyP];if(this.difficultyPhase>=2)p.push(...this.medP);if(this.difficultyPhase>=4)p.push(...this.hardP);return p[Math.floor(Math.random()*p.length)];}
-    _spawnPattern(){const pat=this._getPattern();const bl=new Set();pat.forEach(p=>{const o=this.add.image(LANE_X[p.lane],SPAWN_Y+p.yOff,p.type);o.setData('type',p.type);this.obstacles.add(o);bl.add(p.lane);});for(let l=0;l<5;l++)if(!bl.has(l)&&Math.random()>0.5){const c=this.add.image(LANE_X[l],SPAWN_Y-10,'coin');c.setData('att',false);this.coinSprites.add(c);}}
+    _spawnPattern(){const pat=this._getPattern();const bl=new Set();pat.forEach(p=>{const o=this.add.image(LANE_X[p.lane],SPAWN_Y+p.yOff,p.type);o.setData('type',p.type);if(p.type==='pedestrian')o.setData('walkDir',Math.random()>0.5?1:-1);this.obstacles.add(o);bl.add(p.lane);});for(let l=0;l<5;l++)if(!bl.has(l)&&Math.random()>0.5){const c=this.add.image(LANE_X[l],SPAWN_Y-10,'coin');c.setData('att',false);this.coinSprites.add(c);}}
     _spawnPU(){const ts=['shield','magnet','speed_boost','slow_motion'];const t=ts[Math.floor(Math.random()*ts.length)];const l=Math.floor(Math.random()*5);const p=this.add.image(LANE_X[l],SPAWN_Y,'pu_'+t);p.setData('puType',t);this.powerups.add(p);}
     _spawnBuilding(y){const type=this.bldTypes[Math.floor(Math.random()*this.bldTypes.length)];const side=Math.random()>0.5;const x=side?255:15;const b=this.add.image(x,y,type).setDepth(1);this.buildings.add(b);if(Math.random()>0.4){const x2=side?15:255;const type2=this.bldTypes[Math.floor(Math.random()*this.bldTypes.length)];const b2=this.add.image(x2,y+(Math.random()*20-10),type2).setDepth(1);this.buildings.add(b2);}}
 
@@ -520,11 +520,13 @@ class GameScene extends Phaser.Scene {
         menuBtn.on('pointerdown',()=>{audio.playClick();this.scene.start('MainMenu');});
     }
     _showPause(){
-        this.pauseOverlay=this.add.rectangle(GAME_W/2,GAME_H/2,GAME_W,GAME_H,0x000000,0.6).setDepth(300);
-        this.add.text(GAME_W/2,GAME_H/2-30,'PAUSED',{fontSize:'16px',fontFamily:'monospace',color:'#fff'}).setOrigin(0.5).setDepth(301);
+        this.pauseGroup=[];
+        const overlay=this.add.rectangle(GAME_W/2,GAME_H/2,GAME_W,GAME_H,0x000000,0.6).setDepth(300);
+        const title=this.add.text(GAME_W/2,GAME_H/2-30,'PAUSED',{fontSize:'16px',fontFamily:'monospace',color:'#fff'}).setOrigin(0.5).setDepth(301);
         const resumeBtn=this.add.text(GAME_W/2,GAME_H/2+10,'RESUME',{fontSize:'12px',fontFamily:'monospace',color:'#fff',backgroundColor:'#3366CC',padding:{x:20,y:8}}).setOrigin(0.5).setDepth(301).setInteractive();
         const quitBtn=this.add.text(GAME_W/2,GAME_H/2+50,'QUIT',{fontSize:'12px',fontFamily:'monospace',color:'#fff',backgroundColor:'#663333',padding:{x:20,y:8}}).setOrigin(0.5).setDepth(301).setInteractive();
-        resumeBtn.on('pointerdown',()=>{audio.playClick();this.gameState='playing';this.scene.restart();});
+        this.pauseGroup.push(overlay,title,resumeBtn,quitBtn);
+        resumeBtn.on('pointerdown',()=>{audio.playClick();this.pauseGroup.forEach(o=>o.destroy());this.gameState='playing';});
         quitBtn.on('pointerdown',()=>{audio.playClick();audio.stopMusic();this.scene.start('MainMenu');});
     }
 }
@@ -828,11 +830,13 @@ class RaceScene extends Phaser.Scene {
         this.time.delayedCall(800,()=>{audio.playGameOver();this._showRaceEnd(false);});}
 
     _showPause(){
-        this.pauseOverlay=this.add.rectangle(GAME_W/2,GAME_H/2,GAME_W,GAME_H,0x000000,0.6).setDepth(300);
-        this.add.text(GAME_W/2,GAME_H/2-30,'PAUSED',{fontSize:'16px',fontFamily:'monospace',color:'#fff'}).setOrigin(0.5).setDepth(301);
+        this.pauseGroup=[];
+        const overlay=this.add.rectangle(GAME_W/2,GAME_H/2,GAME_W,GAME_H,0x000000,0.6).setDepth(300);
+        const title=this.add.text(GAME_W/2,GAME_H/2-30,'PAUSED',{fontSize:'16px',fontFamily:'monospace',color:'#fff'}).setOrigin(0.5).setDepth(301);
         const resumeBtn=this.add.text(GAME_W/2,GAME_H/2+10,'RESUME',{fontSize:'12px',fontFamily:'monospace',color:'#fff',backgroundColor:'#3366CC',padding:{x:20,y:8}}).setOrigin(0.5).setDepth(301).setInteractive();
         const quitBtn=this.add.text(GAME_W/2,GAME_H/2+50,'QUIT',{fontSize:'12px',fontFamily:'monospace',color:'#fff',backgroundColor:'#663333',padding:{x:20,y:8}}).setOrigin(0.5).setDepth(301).setInteractive();
-        resumeBtn.on('pointerdown',()=>{audio.playClick();this.gameState='playing';this.scene.restart();});
+        this.pauseGroup.push(overlay,title,resumeBtn,quitBtn);
+        resumeBtn.on('pointerdown',()=>{audio.playClick();this.pauseGroup.forEach(o=>o.destroy());this.gameState='playing';});
         quitBtn.on('pointerdown',()=>{audio.playClick();audio.stopMusic();this.scene.start('MainMenu');});
     }
 
