@@ -531,13 +531,30 @@ class GameScene extends Phaser.Scene {
 
     _showGameOver(isNew){
         this.add.rectangle(GAME_W/2,GAME_H/2,GAME_W,GAME_H,0x000000,0.7).setDepth(200);
-        const py=GAME_H/2-20;
-        this.add.rectangle(GAME_W/2,py,210,230,0x222244,0.9).setDepth(201).setStrokeStyle(2,0x4444aa);
-        this.add.text(GAME_W/2,py-90,'GAME OVER',{fontSize:'14px',fontFamily:'monospace',color:'#FF4444',stroke:'#000',strokeThickness:2}).setOrigin(0.5).setDepth(202);
-        if(isNew)this.add.text(GAME_W/2,py-70,'NEW BEST!',{fontSize:'10px',fontFamily:'monospace',color:'#FFD700'}).setOrigin(0.5).setDepth(202);
-        ['Distance: '+Math.floor(this.distance)+'m','Coins: +$'+this.coins,'Best: '+SaveData.get('highscore')+'m'].forEach((s,i)=>this.add.text(GAME_W/2,py-40+i*22,s,{fontSize:'10px',fontFamily:'monospace',color:'#ddd'}).setOrigin(0.5).setDepth(202));
-        const retBtn=this.add.text(GAME_W/2,py+45,'  RETRY  ',{fontSize:'12px',fontFamily:'monospace',color:'#fff',backgroundColor:'#3366CC',padding:{x:20,y:8}}).setOrigin(0.5).setDepth(202).setInteractive();
-        const menuBtn=this.add.text(GAME_W/2,py+80,'  MENU  ',{fontSize:'12px',fontFamily:'monospace',color:'#fff',backgroundColor:'#555566',padding:{x:20,y:8}}).setOrigin(0.5).setDepth(202).setInteractive();
+        const py=80;
+        this.add.rectangle(GAME_W/2,py,210,120,0x222244,0.9).setDepth(201).setStrokeStyle(2,0x4444aa);
+        this.add.text(GAME_W/2,py-45,'GAME OVER',{fontSize:'14px',fontFamily:'monospace',color:'#FF4444',stroke:'#000',strokeThickness:2}).setOrigin(0.5).setDepth(202);
+        if(isNew)this.add.text(GAME_W/2,py-28,'NEW BEST!',{fontSize:'10px',fontFamily:'monospace',color:'#FFD700'}).setOrigin(0.5).setDepth(202);
+        ['Distance: '+Math.floor(this.distance)+'m','Coins: +$'+this.coins,'Best: '+SaveData.get('highscore')+'m'].forEach((s,i)=>this.add.text(GAME_W/2,py-10+i*18,s,{fontSize:'9px',fontFamily:'monospace',color:'#ddd'}).setOrigin(0.5).setDepth(202));
+
+        // Name entry for leaderboard
+        this.add.text(GAME_W/2,155,'ENTER YOUR NAME',{fontSize:'8px',fontFamily:'monospace',color:'#FFD700'}).setOrigin(0.5).setDepth(202);
+        const score=Math.floor(this.distance);
+        const self=this;
+        showNameInput(this,GAME_W/2,172,202,(name,inputGroup)=>{
+            if(name){
+                Leaderboard.submit(name,score,'skateboard').then(()=>{
+                    inputGroup.forEach(o=>o.destroy());
+                    self._showPostSubmitButtons();
+                });
+            } else {
+                self._showPostSubmitButtons();
+            }
+        });
+    }
+    _showPostSubmitButtons(){
+        const retBtn=this.add.text(GAME_W/2,GAME_H-70,'  RETRY  ',{fontSize:'12px',fontFamily:'monospace',color:'#fff',backgroundColor:'#3366CC',padding:{x:20,y:8}}).setOrigin(0.5).setDepth(202).setInteractive();
+        const menuBtn=this.add.text(GAME_W/2,GAME_H-35,'  MENU  ',{fontSize:'12px',fontFamily:'monospace',color:'#fff',backgroundColor:'#555566',padding:{x:20,y:8}}).setOrigin(0.5).setDepth(202).setInteractive();
         retBtn.on('pointerdown',()=>{audio.playClick();this.scene.restart();});
         menuBtn.on('pointerdown',()=>{audio.playClick();this.scene.start('MainMenu');});
     }
@@ -865,17 +882,33 @@ class RaceScene extends Phaser.Scene {
 
     _showRaceEnd(won) {
         this.add.rectangle(GAME_W/2,GAME_H/2,GAME_W,GAME_H,0x000000,0.7).setDepth(200);
-        const py=GAME_H/2-10;
-        this.add.rectangle(GAME_W/2,py,210,200,0x222244,0.9).setDepth(201).setStrokeStyle(2,won?0x44aa44:0x4444aa);
-        this.add.text(GAME_W/2,py-70,won?'YOU WIN!':'CRASHED!',{fontSize:'16px',fontFamily:'monospace',color:won?'#44FF44':'#FF4444',stroke:'#000',strokeThickness:2}).setOrigin(0.5).setDepth(202);
-        this.add.text(GAME_W/2,py-40,'Distance: '+Math.floor(this.distance)+'m',{fontSize:'10px',fontFamily:'monospace',color:'#ddd'}).setOrigin(0.5).setDepth(202);
-        if(won) this.add.text(GAME_W/2,py-20,'+40 coins!',{fontSize:'10px',fontFamily:'monospace',color:'#FFD700'}).setOrigin(0.5).setDepth(202);
+        const py=70;
+        this.add.rectangle(GAME_W/2,py,210,100,0x222244,0.9).setDepth(201).setStrokeStyle(2,won?0x44aa44:0x4444aa);
+        this.add.text(GAME_W/2,py-35,won?'YOU WIN!':'CRASHED!',{fontSize:'16px',fontFamily:'monospace',color:won?'#44FF44':'#FF4444',stroke:'#000',strokeThickness:2}).setOrigin(0.5).setDepth(202);
+        this.add.text(GAME_W/2,py-10,'Distance: '+Math.floor(this.distance)+'m',{fontSize:'10px',fontFamily:'monospace',color:'#ddd'}).setOrigin(0.5).setDepth(202);
+        if(won) this.add.text(GAME_W/2,py+8,'+40 coins!',{fontSize:'10px',fontFamily:'monospace',color:'#FFD700'}).setOrigin(0.5).setDepth(202);
         const aliveAI=this.aiRacers.filter(a=>a.alive).length;
         const deadAI=10-aliveAI;
-        this.add.text(GAME_W/2,py+5,'Position: #'+(won?1:Math.max(2,11-deadAI)),{fontSize:'10px',fontFamily:'monospace',color:'#aaa'}).setOrigin(0.5).setDepth(202);
+        this.add.text(GAME_W/2,py+25,'Position: #'+(won?1:Math.max(2,11-deadAI)),{fontSize:'10px',fontFamily:'monospace',color:'#aaa'}).setOrigin(0.5).setDepth(202);
 
-        const retBtn=this.add.text(GAME_W/2,py+40,'  RACE AGAIN  ',{fontSize:'11px',fontFamily:'monospace',color:'#fff',backgroundColor:'#CC6633',padding:{x:16,y:7}}).setOrigin(0.5).setDepth(202).setInteractive();
-        const menuBtn=this.add.text(GAME_W/2,py+72,'  MENU  ',{fontSize:'11px',fontFamily:'monospace',color:'#fff',backgroundColor:'#555566',padding:{x:16,y:7}}).setOrigin(0.5).setDepth(202).setInteractive();
+        // Name entry for leaderboard
+        this.add.text(GAME_W/2,140,'ENTER YOUR NAME',{fontSize:'8px',fontFamily:'monospace',color:'#FFD700'}).setOrigin(0.5).setDepth(202);
+        const score=Math.floor(this.distance);
+        const self=this;
+        showNameInput(this,GAME_W/2,157,202,(name,inputGroup)=>{
+            if(name){
+                Leaderboard.submit(name,score,'skateboard',{mode:'race'}).then(()=>{
+                    inputGroup.forEach(o=>o.destroy());
+                    self._showRacePostButtons();
+                });
+            } else {
+                self._showRacePostButtons();
+            }
+        });
+    }
+    _showRacePostButtons(){
+        const retBtn=this.add.text(GAME_W/2,GAME_H-70,'  RACE AGAIN  ',{fontSize:'11px',fontFamily:'monospace',color:'#fff',backgroundColor:'#CC6633',padding:{x:16,y:7}}).setOrigin(0.5).setDepth(202).setInteractive();
+        const menuBtn=this.add.text(GAME_W/2,GAME_H-35,'  MENU  ',{fontSize:'11px',fontFamily:'monospace',color:'#fff',backgroundColor:'#555566',padding:{x:16,y:7}}).setOrigin(0.5).setDepth(202).setInteractive();
         retBtn.on('pointerdown',()=>{audio.playClick();this.scene.restart();});
         menuBtn.on('pointerdown',()=>{audio.playClick();this.scene.start('MainMenu');});
     }

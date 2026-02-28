@@ -20,7 +20,8 @@ const SaveData = {
         highscore: 0, totalCoins: 0, selectedChar: 0, selectedBoard: 0,
         selectedOutfit: 0, musicTrack: 0, unlockedChars: [0], unlockedBoards: [0],
         unlockedOutfits: [0], raceWins: 0, racesPlayed: 0,
-        jttHighscore: 0, jttGamesPlayed: 0, jttMusicTrack: 0
+        jttHighscore: 0, jttGamesPlayed: 0, jttMusicTrack: 0,
+        playerName: ''
     },
     load() {
         try { this._d = JSON.parse(localStorage.getItem('sk8_save')) || {}; } catch(e) { this._d = {}; }
@@ -31,6 +32,192 @@ const SaveData = {
     set(k, v) { if (!this._d) this.load(); this._d[k] = v; this.save(); },
 };
 SaveData.load();
+
+// ============================================================
+// LEADERBOARD - jsonblob.com storage
+// ============================================================
+const Leaderboard = {
+    BLOB_ID: '019ca567-35ed-76b4-9ab6-b1f7280babb8',
+    _cache: null,
+    _url() { return 'https://jsonblob.com/api/jsonBlob/' + this.BLOB_ID; },
+    async fetch() {
+        try {
+            const r = await fetch(this._url());
+            if (!r.ok) throw new Error('fetch failed');
+            const d = await r.json();
+            this._cache = d.scores || [];
+            return this._cache;
+        } catch(e) {
+            return this._cache || [];
+        }
+    },
+    async submit(name, score, game, extra) {
+        try {
+            const scores = await this.fetch();
+            scores.push({ name, score, game, date: new Date().toISOString().slice(0,10), ...(extra||{}) });
+            scores.sort((a,b) => b.score - a.score);
+            if (scores.length > 50) scores.length = 50;
+            await fetch(this._url(), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scores })
+            });
+            this._cache = scores;
+            return true;
+        } catch(e) {
+            return false;
+        }
+    }
+};
+
+// ============================================================
+// NAME INPUT HELPER - In-game name entry for leaderboard
+// ============================================================
+function showNameInput(scene, x, y, depth, onSubmit, opts) {
+    const sf = (opts && opts.scrollFactor !== undefined) ? opts.scrollFactor : undefined;
+    const applyScroll = (obj) => { if (sf !== undefined && obj.setScrollFactor) obj.setScrollFactor(sf); return obj; };
+    const savedName = SaveData.get('playerName') || '';
+    const maxLen = 10;
+    let currentName = savedName.toUpperCase();
+    const group = [];
+
+    // Name display box
+    const nameBox = scene.add.graphics().setDepth(depth);
+    nameBox.fillStyle(0x111133, 0.9);
+    nameBox.fillRect(x - 80, y - 12, 160, 22);
+    nameBox.lineStyle(1, 0x6666aa, 0.8);
+    nameBox.strokeRect(x - 80, y - 12, 160, 22);
+    applyScroll(nameBox);
+    group.push(nameBox);
+
+    const nameDisplay = applyScroll(scene.add.text(x, y, currentName || 'TAP TO TYPE', {
+        fontSize: '10px', fontFamily: 'monospace', color: currentName ? '#fff' : '#555'
+    }).setOrigin(0.5).setDepth(depth + 1));
+    group.push(nameDisplay);
+
+    const cursor = applyScroll(scene.add.text(x + 1, y, '_', {
+        fontSize: '10px', fontFamily: 'monospace', color: '#FFD700'
+    }).setOrigin(0, 0.5).setDepth(depth + 1));
+    group.push(cursor);
+    scene.tweens.add({ targets: cursor, alpha: 0, duration: 500, yoyo: true, repeat: -1 });
+
+    function updateDisplay() {
+        nameDisplay.setText(currentName || 'TAP TO TYPE');
+        nameDisplay.setColor(currentName ? '#fff' : '#555');
+        const tw = nameDisplay.width;
+        cursor.setX(x + tw / 2 + 2);
+        cursor.setVisible(currentName.length < maxLen);
+    }
+
+    // Virtual keyboard - 3 rows
+    const kbRows = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+    const kbStartY = y + 18;
+    const keySize = 16;
+    const keyGap = 2;
+
+    kbRows.forEach((row, ri) => {
+        const rowW = row.length * (keySize + keyGap) - keyGap;
+        const startX = x - rowW / 2;
+        for (let ci = 0; ci < row.length; ci++) {
+            const ch = row[ci];
+            const kx = startX + ci * (keySize + keyGap) + keySize / 2;
+            const ky = kbStartY + ri * (keySize + keyGap);
+
+            const keyBg = applyScroll(scene.add.rectangle(kx, ky, keySize, keySize, 0x333355, 0.9)
+                .setDepth(depth + 1).setStrokeStyle(1, 0x5555aa).setInteractive());
+            const keyTxt = applyScroll(scene.add.text(kx, ky, ch, {
+                fontSize: '8px', fontFamily: 'monospace', color: '#ddd'
+            }).setOrigin(0.5).setDepth(depth + 2));
+            group.push(keyBg, keyTxt);
+
+            keyBg.on('pointerdown', () => {
+                if (currentName.length < maxLen) {
+                    currentName += ch;
+                    updateDisplay();
+                    audio.playClick();
+                }
+            });
+        }
+    });
+
+    // Bottom row: DEL + numbers + OK
+    const bottomY = kbStartY + 3 * (keySize + keyGap);
+
+    // DEL button
+    const delBg = applyScroll(scene.add.rectangle(x - 75, bottomY, 30, keySize, 0x663333, 0.9)
+        .setDepth(depth + 1).setStrokeStyle(1, 0xaa5555).setInteractive());
+    const delTxt = applyScroll(scene.add.text(x - 75, bottomY, 'DEL', {
+        fontSize: '7px', fontFamily: 'monospace', color: '#ff8888'
+    }).setOrigin(0.5).setDepth(depth + 2));
+    group.push(delBg, delTxt);
+
+    delBg.on('pointerdown', () => {
+        if (currentName.length > 0) {
+            currentName = currentName.slice(0, -1);
+            updateDisplay();
+            audio.playClick();
+        }
+    });
+
+    // Number keys (0-9) in a compact row
+    const nums = '0123456789';
+    const numRowW = nums.length * (keySize + keyGap) - keyGap - 70;
+    const numStartX = x - numRowW / 2 + 5;
+    for (let ni = 0; ni < nums.length; ni++) {
+        const ch = nums[ni];
+        const nx = numStartX + ni * 14;
+        const nBg = applyScroll(scene.add.rectangle(nx, bottomY, 12, keySize, 0x333355, 0.9)
+            .setDepth(depth + 1).setStrokeStyle(1, 0x5555aa).setInteractive());
+        const nTxt = applyScroll(scene.add.text(nx, bottomY, ch, {
+            fontSize: '7px', fontFamily: 'monospace', color: '#aaa'
+        }).setOrigin(0.5).setDepth(depth + 2));
+        group.push(nBg, nTxt);
+        nBg.on('pointerdown', () => {
+            if (currentName.length < maxLen) {
+                currentName += ch;
+                updateDisplay();
+                audio.playClick();
+            }
+        });
+    }
+
+    // SUBMIT button
+    const subBg = applyScroll(scene.add.rectangle(x, bottomY + keySize + 6, 100, 20, 0x336633, 0.9)
+        .setDepth(depth + 1).setStrokeStyle(1, 0x55aa55).setInteractive());
+    const subTxt = applyScroll(scene.add.text(x, bottomY + keySize + 6, 'SUBMIT SCORE', {
+        fontSize: '8px', fontFamily: 'monospace', color: '#88FF88'
+    }).setOrigin(0.5).setDepth(depth + 2));
+    group.push(subBg, subTxt);
+
+    // SKIP button
+    const skipBg = applyScroll(scene.add.rectangle(x, bottomY + keySize + 28, 60, 16, 0x444444, 0.7)
+        .setDepth(depth + 1).setStrokeStyle(1, 0x666666).setInteractive());
+    const skipTxt = applyScroll(scene.add.text(x, bottomY + keySize + 28, 'SKIP', {
+        fontSize: '7px', fontFamily: 'monospace', color: '#888'
+    }).setOrigin(0.5).setDepth(depth + 2));
+    group.push(skipBg, skipTxt);
+
+    subBg.on('pointerdown', () => {
+        audio.playClick();
+        const name = currentName.trim();
+        if (name.length > 0) {
+            SaveData.set('playerName', name);
+            subTxt.setText('SAVING...');
+            subBg.disableInteractive();
+            skipBg.disableInteractive();
+            onSubmit(name, group);
+        }
+    });
+
+    skipBg.on('pointerdown', () => {
+        audio.playClick();
+        group.forEach(o => o.destroy());
+        onSubmit(null, []);
+    });
+
+    updateDisplay();
+    return group;
+}
 
 // ============================================================
 // CHARACTER / BOARD / OUTFIT DATA

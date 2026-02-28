@@ -827,53 +827,63 @@ class JTTGameScene extends Phaser.Scene {
     }
 
     _showGameOver() {
-        const camCenterY = JTT_GAME_H / 2;
-
         // Overlay
-        const overlay = this.add.rectangle(JTT_GAME_W / 2, camCenterY, JTT_GAME_W, JTT_GAME_H, 0x000000, 0.7)
+        this.add.rectangle(JTT_GAME_W / 2, JTT_GAME_H / 2, JTT_GAME_W, JTT_GAME_H, 0x000000, 0.7)
             .setDepth(200).setScrollFactor(0);
 
-        // Panel
-        const panel = this.add.rectangle(JTT_GAME_W / 2, camCenterY, 220, 260, 0x222244, 0.95)
+        // Stats panel at top
+        this.add.rectangle(JTT_GAME_W / 2, 70, 220, 110, 0x222244, 0.95)
             .setDepth(201).setStrokeStyle(2, 0x4444aa).setScrollFactor(0);
 
-        const py = camCenterY;
-
-        // Title
-        this.add.text(JTT_GAME_W / 2, py - 100, 'GAME OVER', {
-            fontSize: '16px', fontFamily: 'monospace', color: '#FF4444',
+        this.add.text(JTT_GAME_W / 2, 30, 'GAME OVER', {
+            fontSize: '14px', fontFamily: 'monospace', color: '#FF4444',
             stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5).setDepth(202).setScrollFactor(0);
 
-        // Height
-        this.add.text(JTT_GAME_W / 2, py - 65, 'Height: ' + this.maxHeight + 'm', {
-            fontSize: '12px', fontFamily: 'monospace', color: '#88CCFF'
+        this.add.text(JTT_GAME_W / 2, 55, 'Height: ' + this.maxHeight + 'm', {
+            fontSize: '11px', fontFamily: 'monospace', color: '#88CCFF'
         }).setOrigin(0.5).setDepth(202).setScrollFactor(0);
 
-        // Best
         const best = SaveData.get('jttHighscore') || 0;
         const isNew = this.maxHeight >= best;
-        this.add.text(JTT_GAME_W / 2, py - 40, (isNew ? 'NEW BEST!' : 'Best: ' + best + 'm'), {
-            fontSize: '10px', fontFamily: 'monospace', color: isNew ? '#FFD700' : '#888'
+        this.add.text(JTT_GAME_W / 2, 75, (isNew ? 'NEW BEST!' : 'Best: ' + best + 'm'), {
+            fontSize: '9px', fontFamily: 'monospace', color: isNew ? '#FFD700' : '#888'
         }).setOrigin(0.5).setDepth(202).setScrollFactor(0);
 
-        // Coins
-        this.add.text(JTT_GAME_W / 2, py - 15, 'Coins: +$' + this.coinsCollected, {
-            fontSize: '10px', fontFamily: 'monospace', color: '#FFD700'
+        this.add.text(JTT_GAME_W / 2, 95, 'Coins: +$' + this.coinsCollected, {
+            fontSize: '9px', fontFamily: 'monospace', color: '#FFD700'
         }).setOrigin(0.5).setDepth(202).setScrollFactor(0);
 
-        // Buttons
-        const retryBtn = this.add.text(JTT_GAME_W / 2, py + 25, '  TRY AGAIN  ', {
+        // Name entry for leaderboard
+        this.add.text(JTT_GAME_W / 2, 135, 'ENTER YOUR NAME', {
+            fontSize: '8px', fontFamily: 'monospace', color: '#FFD700'
+        }).setOrigin(0.5).setDepth(202).setScrollFactor(0);
+
+        const score = this.maxHeight;
+        const self = this;
+        showNameInput(this, JTT_GAME_W / 2, 152, 202, (name, inputGroup) => {
+            if (name) {
+                Leaderboard.submit(name, score, 'jumptotop').then(() => {
+                    inputGroup.forEach(o => o.destroy());
+                    self._showJTTPostButtons();
+                });
+            } else {
+                self._showJTTPostButtons();
+            }
+        }, { scrollFactor: 0 });
+    }
+    _showJTTPostButtons() {
+        const retryBtn = this.add.text(JTT_GAME_W / 2, GAME_H - 90, '  TRY AGAIN  ', {
             fontSize: '11px', fontFamily: 'monospace', color: '#fff',
             backgroundColor: '#3366CC', padding: { x: 16, y: 7 }
         }).setOrigin(0.5).setDepth(202).setScrollFactor(0).setInteractive();
 
-        const menuBtn = this.add.text(JTT_GAME_W / 2, py + 65, '    MENU    ', {
+        const menuBtn = this.add.text(JTT_GAME_W / 2, GAME_H - 55, '    MENU    ', {
             fontSize: '11px', fontFamily: 'monospace', color: '#fff',
             backgroundColor: '#555566', padding: { x: 16, y: 7 }
         }).setOrigin(0.5).setDepth(202).setScrollFactor(0).setInteractive();
 
-        const gamesBtn = this.add.text(JTT_GAME_W / 2, py + 105, ' ALL GAMES  ', {
+        const gamesBtn = this.add.text(JTT_GAME_W / 2, GAME_H - 20, ' ALL GAMES  ', {
             fontSize: '11px', fontFamily: 'monospace', color: '#fff',
             backgroundColor: '#664444', padding: { x: 16, y: 7 }
         }).setOrigin(0.5).setDepth(202).setScrollFactor(0).setInteractive();
