@@ -9,6 +9,7 @@ const LANE_X = [50, 92, 135, 178, 220];
 const PLAYER_Y = 390;
 const SPAWN_Y = -60;
 const BASE_SPEED = 80;
+const PED_TEXTURES = ['pedestrian', 'pedestrian_blue', 'pedestrian_green'];
 
 // ============================================================
 // SAVE DATA - Persistent game state
@@ -210,6 +211,28 @@ function generateAllTextures(scene) {
         // Legs (walking pose)
         g.fillStyle(0x333355); g.fillRect(4, 14, 3, 7); g.fillRect(8, 14, 3, 7);
         // Shoes
+        g.fillStyle(0x444444); g.fillRect(3, 20, 4, 3); g.fillRect(8, 20, 4, 3);
+    });
+    // Pedestrian variant 2 - blue jacket
+    createPixelTexture(scene, 'pedestrian_blue', 14, 24, (g) => {
+        g.fillStyle(0xFFCC99); g.fillRect(5, 0, 5, 5);
+        g.fillStyle(0x443322); g.fillRect(5, 0, 5, 2);
+        g.fillStyle(0x222222); g.fillRect(6, 2, 1, 1); g.fillRect(8, 2, 1, 1);
+        g.fillStyle(0x3355AA); g.fillRect(3, 5, 9, 9);
+        g.fillStyle(0x3355AA); g.fillRect(1, 6, 3, 7); g.fillRect(11, 6, 3, 7);
+        g.fillStyle(0xFFCC99); g.fillRect(1, 12, 2, 2); g.fillRect(12, 12, 2, 2);
+        g.fillStyle(0x222244); g.fillRect(4, 14, 3, 7); g.fillRect(8, 14, 3, 7);
+        g.fillStyle(0x555555); g.fillRect(3, 20, 4, 3); g.fillRect(8, 20, 4, 3);
+    });
+    // Pedestrian variant 3 - green hoodie
+    createPixelTexture(scene, 'pedestrian_green', 14, 24, (g) => {
+        g.fillStyle(0xDDBB99); g.fillRect(5, 0, 5, 5);
+        g.fillStyle(0x338833); g.fillRect(5, 0, 5, 3);
+        g.fillStyle(0x222222); g.fillRect(6, 3, 1, 1); g.fillRect(8, 3, 1, 1);
+        g.fillStyle(0x338833); g.fillRect(3, 5, 9, 9);
+        g.fillStyle(0x338833); g.fillRect(1, 6, 3, 7); g.fillRect(11, 6, 3, 7);
+        g.fillStyle(0xDDBB99); g.fillRect(1, 12, 2, 2); g.fillRect(12, 12, 2, 2);
+        g.fillStyle(0x333333); g.fillRect(4, 14, 3, 7); g.fillRect(8, 14, 3, 7);
         g.fillStyle(0x444444); g.fillRect(3, 20, 4, 3); g.fillRect(8, 20, 4, 3);
     });
     createPixelTexture(scene, 'coin', 12, 12, (g) => { g.fillStyle(0xFFD700); g.fillEllipse(6,6,12,12); g.fillStyle(0xFFE44D); g.fillEllipse(5,5,8,8); g.fillStyle(0xCC9900); g.fillRect(5,4,2,4); });
