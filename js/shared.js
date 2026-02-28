@@ -47,15 +47,18 @@ const SaveData = {
 SaveData.load();
 
 // ============================================================
-// LEADERBOARD - jsonblob.com storage
+// LEADERBOARD - Google Apps Script backend
 // ============================================================
+// To set up: deploy leaderboard_apps_script.js as a Google Apps Script Web App
+// then paste the URL below (ending in /exec)
+const LEADERBOARD_URL = '';  // SET THIS after deploying the Apps Script
+
 const Leaderboard = {
-    BLOB_ID: '019ca567-35ed-76b4-9ab6-b1f7280babb8',
     _cache: null,
-    _url() { return 'https://jsonblob.com/api/jsonBlob/' + this.BLOB_ID; },
     async fetch() {
+        if (!LEADERBOARD_URL) return this._cache || [];
         try {
-            const r = await fetch(this._url());
+            const r = await fetch(LEADERBOARD_URL);
             if (!r.ok) throw new Error('fetch failed');
             const d = await r.json();
             this._cache = d.scores || [];
@@ -65,18 +68,18 @@ const Leaderboard = {
         }
     },
     async submit(name, score, game, extra) {
+        if (!LEADERBOARD_URL) return false;
         try {
-            const scores = await this.fetch();
-            scores.push({ name, score, game, date: new Date().toISOString().slice(0,10), ...(extra||{}) });
-            scores.sort((a,b) => b.score - a.score);
-            if (scores.length > 50) scores.length = 50;
-            await fetch(this._url(), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ scores })
+            const body = { name, score, game };
+            if (extra && extra.difficulty) body.difficulty = extra.difficulty;
+            const r = await fetch(LEADERBOARD_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(body)
             });
-            this._cache = scores;
-            return true;
+            const d = await r.json();
+            if (d.scores) this._cache = d.scores;
+            return d.success || false;
         } catch(e) {
             return false;
         }
