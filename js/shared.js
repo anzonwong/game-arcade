@@ -12,6 +12,16 @@ const BASE_SPEED = 80;
 const PED_TEXTURES = ['pedestrian', 'pedestrian_blue', 'pedestrian_green'];
 
 // ============================================================
+// DIFFICULTY MODES
+// ============================================================
+const DIFFICULTY_MODES = [
+    { key: 'easy',       label: 'EASY',       color: '#44CC44', speedMult: 0.8, spawnStart: 2.5, spawnMin: 0.8, patternPhase: 3, scoreMult: 0.5 },
+    { key: 'normal',     label: 'NORMAL',     color: '#4499FF', speedMult: 1.0, spawnStart: 2.0, spawnMin: 0.6, patternPhase: 0, scoreMult: 1.0 },
+    { key: 'hard',       label: 'HARD',       color: '#FF8844', speedMult: 1.3, spawnStart: 1.5, spawnMin: 0.5, patternPhase: -2, scoreMult: 1.5 },
+    { key: 'impossible', label: 'IMPOSSIBLE', color: '#FF3333', speedMult: 1.8, spawnStart: 1.0, spawnMin: 0.3, patternPhase: -4, scoreMult: 3.0 },
+];
+
+// ============================================================
 // SAVE DATA - Persistent game state
 // ============================================================
 const SaveData = {
@@ -21,7 +31,8 @@ const SaveData = {
         selectedOutfit: 0, musicTrack: 0, unlockedChars: [0], unlockedBoards: [0],
         unlockedOutfits: [0], raceWins: 0, racesPlayed: 0,
         jttHighscore: 0, jttGamesPlayed: 0, jttMusicTrack: 0,
-        playerName: ''
+        playerName: '', selectedDifficulty: 1,
+        highscoreEasy: 0, highscoreNormal: 0, highscoreHard: 0, highscoreImpossible: 0
     },
     load() {
         try { this._d = JSON.parse(localStorage.getItem('sk8_save')) || {}; } catch(e) { this._d = {}; }

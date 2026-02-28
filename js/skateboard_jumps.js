@@ -21,12 +21,41 @@ class MainMenuScene extends Phaser.Scene {
         this.cameras.main.setBackgroundColor('#1a1a2e');
         this.add.image(GAME_W/2, GAME_H/2, 'bg_sky');
         this.add.text(GAME_W/2, 55, 'SKATEBOARD\nJUMPS', { fontSize:'18px', fontFamily:'monospace', color:'#FFD700', align:'center', stroke:'#000', strokeThickness:3, lineSpacing:4 }).setOrigin(0.5);
-        this.add.image(GAME_W/2, 130, getSkaterKey()).setScale(2.5);
+        this.add.image(GAME_W/2, 125, getSkaterKey()).setScale(2.5);
 
         const bx = GAME_W / 2;
-        let by = 185;
-        const gap = 33;
+        let by = 175;
+        const gap = 28;
         makeBtn(this, bx, by, '    PLAY    ', '#3366CC', () => this.scene.start('Game'));
+
+        // Difficulty selector
+        by += 20;
+        const diffIdx = SaveData.get('selectedDifficulty') || 1;
+        const dm = DIFFICULTY_MODES[diffIdx];
+        const diffLabel = this.add.text(bx, by, dm.label, {
+            fontSize: '9px', fontFamily: 'monospace', color: dm.color
+        }).setOrigin(0.5);
+        const diffLeft = this.add.text(bx - 55, by, '<', {
+            fontSize: '12px', fontFamily: 'monospace', color: '#aaa'
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        const diffRight = this.add.text(bx + 55, by, '>', {
+            fontSize: '12px', fontFamily: 'monospace', color: '#aaa'
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        const multLabel = this.add.text(bx, by + 12, 'x' + dm.scoreMult + ' score', {
+            fontSize: '7px', fontFamily: 'monospace', color: '#888'
+        }).setOrigin(0.5);
+
+        let curDiff = diffIdx;
+        const updateDiff = () => {
+            const d = DIFFICULTY_MODES[curDiff];
+            diffLabel.setText(d.label).setColor(d.color);
+            multLabel.setText('x' + d.scoreMult + ' score');
+            SaveData.set('selectedDifficulty', curDiff);
+        };
+        diffLeft.on('pointerdown', () => { audio.playClick(); curDiff = (curDiff - 1 + DIFFICULTY_MODES.length) % DIFFICULTY_MODES.length; updateDiff(); });
+        diffRight.on('pointerdown', () => { audio.playClick(); curDiff = (curDiff + 1) % DIFFICULTY_MODES.length; updateDiff(); });
+
+        by += 25;
         makeBtn(this, bx, by+=gap, '    RACE    ', '#CC6633', () => this.scene.start('Race'));
         makeBtn(this, bx, by+=gap, ' CHARACTERS ', '#336644', () => this.scene.start('CharSelect'));
         makeBtn(this, bx, by+=gap, '    SHOP    ', '#886622', () => this.scene.start('Shop'));
@@ -324,26 +353,43 @@ class HighScoresScene extends Phaser.Scene {
     create() {
         this.cameras.main.setBackgroundColor('#1a1a2e');
         makeTitle(this, 'HIGH SCORES');
+
+        // Overall best
+        this.add.text(GAME_W/2, 65, 'OVERALL BEST', { fontSize:'9px', fontFamily:'monospace', color:'#888' }).setOrigin(0.5);
+        this.add.text(GAME_W/2, 82, '' + (SaveData.get('highscore') || 0), { fontSize:'16px', fontFamily:'monospace', color:'#fff' }).setOrigin(0.5);
+
+        // Per-difficulty best scores
+        this.add.text(GAME_W/2, 110, 'BY DIFFICULTY', { fontSize:'9px', fontFamily:'monospace', color:'#888' }).setOrigin(0.5);
+        DIFFICULTY_MODES.forEach((dm, i) => {
+            const y = 130 + i * 22;
+            const key = 'highscore' + dm.key.charAt(0).toUpperCase() + dm.key.slice(1);
+            const val = SaveData.get(key) || 0;
+            this.add.text(50, y, dm.label, { fontSize: '9px', fontFamily: 'monospace', color: dm.color });
+            this.add.text(165, y, '' + val, { fontSize: '9px', fontFamily: 'monospace', color: '#ddd' });
+            this.add.text(220, y, 'x' + dm.scoreMult, { fontSize: '7px', fontFamily: 'monospace', color: '#666' });
+        });
+
+        // Stats
         const stats = [
-            { label: 'Best Distance', value: SaveData.get('highscore') + 'm', color: '#fff' },
             { label: 'Total Coins', value: '$' + SaveData.get('totalCoins'), color: '#FFD700' },
             { label: 'Races Played', value: '' + SaveData.get('racesPlayed'), color: '#ccc' },
             { label: 'Race Wins', value: '' + SaveData.get('raceWins'), color: '#44FF44' },
         ];
         stats.forEach((s, i) => {
-            const y = 80 + i * 55;
-            this.add.text(GAME_W/2, y, s.label, { fontSize:'10px', fontFamily:'monospace', color:'#888' }).setOrigin(0.5);
-            this.add.text(GAME_W/2, y + 20, s.value, { fontSize:'16px', fontFamily:'monospace', color:s.color }).setOrigin(0.5);
+            const y = 240 + i * 40;
+            this.add.text(GAME_W/2, y, s.label, { fontSize:'9px', fontFamily:'monospace', color:'#888' }).setOrigin(0.5);
+            this.add.text(GAME_W/2, y + 16, s.value, { fontSize:'14px', fontFamily:'monospace', color:s.color }).setOrigin(0.5);
         });
+
         // Unlocked items count
-        this.add.text(GAME_W/2, 310, 'Unlocked', { fontSize:'10px', fontFamily:'monospace', color:'#888' }).setOrigin(0.5);
+        this.add.text(GAME_W/2, 370, 'Unlocked', { fontSize:'9px', fontFamily:'monospace', color:'#888' }).setOrigin(0.5);
         const uChars = SaveData.get('unlockedChars').length + '/' + CHARACTERS.length + ' chars';
         const uBoards = SaveData.get('unlockedBoards').length + '/' + BOARDS.length + ' boards';
         const uOutfits = SaveData.get('unlockedOutfits').length + '/' + OUTFITS.length + ' outfits';
-        this.add.text(GAME_W/2, 335, uChars + '  ' + uBoards + '\n' + uOutfits, {
-            fontSize:'9px', fontFamily:'monospace', color:'#aaa', align:'center', lineSpacing:3
+        this.add.text(GAME_W/2, 388, uChars + '  ' + uBoards + '\n' + uOutfits, {
+            fontSize:'8px', fontFamily:'monospace', color:'#aaa', align:'center', lineSpacing:3
         }).setOrigin(0.5);
-        makeBtn(this, GAME_W/2, 420, '  BACK  ', '#555566', () => this.scene.start('MainMenu'));
+        makeBtn(this, GAME_W/2, 440, '  BACK  ', '#555566', () => this.scene.start('MainMenu'));
     }
 }
 
@@ -357,10 +403,14 @@ class GameScene extends Phaser.Scene {
         this.gameState = 'playing';
         this.distance = 0; this.coins = 0; this.currentLane = 2;
         this.isJumping = false; this.isCrashed = false;
-        this.speed = BASE_SPEED; this.baseSpeed = BASE_SPEED;
+
+        // Difficulty mode
+        this.diffModeIdx = SaveData.get('selectedDifficulty') || 1;
+        this.diffMode = DIFFICULTY_MODES[this.diffModeIdx];
+        this.speed = BASE_SPEED * this.diffMode.speedMult; this.baseSpeed = this.speed;
         this.activePowerup = null; this.powerupTimer = 0;
         this.invincible = false; this.magnetActive = false;
-        this.spawnTimer = 0; this.spawnInterval = 2.0; this.difficultyPhase = 0;
+        this.spawnTimer = 0; this.spawnInterval = this.diffMode.spawnStart; this.difficultyPhase = 0;
         this.safeCooldown = 0; this.safeActive = false; this.safeTimer = 0;
 
         this.add.image(GAME_W/2, GAME_H/2, 'bg_sky').setScrollFactor(0);
@@ -384,6 +434,7 @@ class GameScene extends Phaser.Scene {
         this.hud = {};
         this.hud.distance = this.add.text(8,6,'0m',{fontSize:'10px',fontFamily:'monospace',color:'#fff',stroke:'#000',strokeThickness:2}).setDepth(100);
         this.hud.coins = this.add.text(GAME_W/2,6,'$0',{fontSize:'10px',fontFamily:'monospace',color:'#FFD700',stroke:'#000',strokeThickness:2}).setOrigin(0.5,0).setDepth(100);
+        if(this.diffModeIdx!==1)this.add.text(8,20,this.diffMode.label,{fontSize:'7px',fontFamily:'monospace',color:this.diffMode.color,stroke:'#000',strokeThickness:1}).setDepth(100);
         this.hud.powerup = this.add.text(GAME_W/2,GAME_H-30,'',{fontSize:'9px',fontFamily:'monospace',color:'#4499FF',stroke:'#000',strokeThickness:2}).setOrigin(0.5).setDepth(100).setVisible(false);
         this.hud.jumpBonus = this.add.text(GAME_W/2, PLAYER_Y-50, '', {fontSize:'9px',fontFamily:'monospace',color:'#44FF44',stroke:'#000',strokeThickness:2}).setOrigin(0.5).setDepth(100).setAlpha(0);
 
@@ -464,8 +515,8 @@ class GameScene extends Phaser.Scene {
 
         this.distance += this.speed * dt;
         this._updateDifficulty();
-        const mult = [1,1.15,1.3,1.5,1.7,2][this.difficultyPhase]||1;
-        this.baseSpeed = BASE_SPEED * mult;
+        const phaseMult = [1,1.15,1.3,1.5,1.7,2][this.difficultyPhase]||1;
+        this.baseSpeed = BASE_SPEED * this.diffMode.speedMult * phaseMult;
         if (this.activePowerup !== 'speed_boost' && this.activePowerup !== 'slow_motion') this.speed = this.baseSpeed;
         if (this.activePowerup) { this.powerupTimer-=dt; this.hud.powerup.setText(this.activePowerup.toUpperCase().replace('_',' ')+' '+Math.ceil(this.powerupTimer)+'s'); if(this.powerupTimer<=0)this._deactivatePU(); }
 
@@ -478,7 +529,7 @@ class GameScene extends Phaser.Scene {
         if(Math.abs(diff)>1){this.player.x+=Math.sign(diff)*300*dt;if(Math.abs(this.playerTargetX-this.player.x)<2)this.player.x=this.playerTargetX;}
         this.player.y=PLAYER_Y+this.playerVisualOffsetY; this.playerShadow.x=this.player.x; this.playerShadow.y=PLAYER_Y+14;
 
-        this.spawnTimer+=dt; if(this.spawnTimer>=this.spawnInterval){this.spawnTimer=0;this._spawnPattern();this.spawnInterval=Math.max(0.6,2-this.difficultyPhase*0.25);}
+        this.spawnTimer+=dt; if(this.spawnTimer>=this.spawnInterval){this.spawnTimer=0;this._spawnPattern();this.spawnInterval=Math.max(this.diffMode.spawnMin,this.diffMode.spawnStart-this.difficultyPhase*0.25);}
         if(Math.random()<0.001*dt*60) this._spawnPU();
         this.obstacles.getChildren().forEach(o=>{o.y+=this.speed*dt;if(o.y>GAME_H+60)o.destroy();if(o.getData('type')==='pedestrian'){const pedSpd=40+this.difficultyPhase*5;o.x+=o.getData('walkDir')*pedSpd*dt;if(o.x<20||o.x>GAME_W-20)o.setData('walkDir',-o.getData('walkDir'));}});
         this.coinSprites.getChildren().forEach(c=>{if(c.getData('att')&&!this.isCrashed){const dx=this.player.x-c.x,dy=this.player.y-c.y,d=Math.sqrt(dx*dx+dy*dy);if(d>2){c.x+=dx/d*400*dt;c.y+=dy/d*400*dt;}}else c.y+=this.speed*dt;if(c.y>GAME_H+30)c.destroy();c.setScale(0.8+Math.sin(time/150+c.x)*0.2,1);});
@@ -509,7 +560,7 @@ class GameScene extends Phaser.Scene {
     doJump(){if(this.isJumping||this.isCrashed)return;this.isJumping=true;this.jumpedOver=false;audio.playJump();this.tweens.add({targets:this,playerVisualOffsetY:-30,duration:220,ease:'Quad.easeOut',yoyo:true,hold:160,onComplete:()=>{this.playerVisualOffsetY=0;this.isJumping=false;audio.playLand();if(this.jumpedOver){this.hud.jumpBonus.setText('+JUMP!');this.hud.jumpBonus.setAlpha(1);this.tweens.add({targets:this.hud.jumpBonus,alpha:0,y:PLAYER_Y-80,duration:600,onComplete:()=>{this.hud.jumpBonus.y=PLAYER_Y-50;}});}}});this.tweens.add({targets:this.playerShadow,scaleX:0.4,scaleY:0.4,duration:220,ease:'Quad.easeOut',yoyo:true,hold:160});}
 
     _updateDifficulty(){const th=[0,500,1500,3000,5000,8000];for(let i=th.length-1;i>=0;i--)if(this.distance>=th[i]){this.difficultyPhase=i;return;}}
-    _getPattern(){let p=[...this.easyP];if(this.difficultyPhase<1)p=p.filter(pat=>!pat.some(i=>i.type==='pedestrian'));if(this.difficultyPhase>=2)p.push(...this.medP);if(this.difficultyPhase>=4)p.push(...this.hardP);return p[Math.floor(Math.random()*p.length)];}
+    _getPattern(){const adj=this.difficultyPhase-this.diffMode.patternPhase;let p=[...this.easyP];if(adj<1)p=p.filter(pat=>!pat.some(i=>i.type==='pedestrian'));if(adj>=2)p.push(...this.medP);if(adj>=4)p.push(...this.hardP);return p[Math.floor(Math.random()*p.length)];}
     _spawnPattern(){const pat=this._getPattern();const bl=new Set();pat.forEach(p=>{const tex=p.type==='pedestrian'?PED_TEXTURES[Math.floor(Math.random()*PED_TEXTURES.length)]:p.type;const o=this.add.image(LANE_X[p.lane],SPAWN_Y+p.yOff,tex);o.setData('type',p.type);if(p.type==='pedestrian')o.setData('walkDir',Math.random()>0.5?1:-1);this.obstacles.add(o);bl.add(p.lane);});for(let l=0;l<5;l++)if(!bl.has(l)&&Math.random()>0.5){const c=this.add.image(LANE_X[l],SPAWN_Y-10,'coin');c.setData('att',false);this.coinSprites.add(c);}}
     _spawnPU(){const ts=['shield','magnet','speed_boost','slow_motion'];const t=ts[Math.floor(Math.random()*ts.length)];const l=Math.floor(Math.random()*5);const p=this.add.image(LANE_X[l],SPAWN_Y,'pu_'+t);p.setData('puType',t);this.powerups.add(p);}
     _spawnBuilding(y){const type=this.bldTypes[Math.floor(Math.random()*this.bldTypes.length)];const side=Math.random()>0.5;const x=side?255:15;const b=this.add.image(x,y,type).setDepth(1);this.buildings.add(b);if(Math.random()>0.4){const x2=side?15:255;const type2=this.bldTypes[Math.floor(Math.random()*this.bldTypes.length)];const b2=this.add.image(x2,y+(Math.random()*20-10),type2).setDepth(1);this.buildings.add(b2);}}
@@ -526,24 +577,29 @@ class GameScene extends Phaser.Scene {
 
     _doCrash(){if(this.isCrashed)return;this.isCrashed=true;this.gameState='gameover';audio.stopMusic();audio.playCrash();
         this.player.setTint(0xFF3333);this.tweens.add({targets:this.player,angle:90,alpha:0.5,y:this.player.y+10,duration:400});this.cameras.main.shake(300,0.01);
-        const prev=SaveData.get('highscore');const isNew=Math.floor(this.distance)>prev;if(isNew)SaveData.set('highscore',Math.floor(this.distance));SaveData.set('totalCoins',SaveData.get('totalCoins')+this.coins);
+        this.finalScore=Math.floor(this.distance*this.diffMode.scoreMult);
+        const prev=SaveData.get('highscore');const isNew=this.finalScore>prev;if(isNew)SaveData.set('highscore',this.finalScore);
+        const diffKey='highscore'+this.diffMode.key.charAt(0).toUpperCase()+this.diffMode.key.slice(1);
+        const prevDiff=SaveData.get(diffKey)||0;if(this.finalScore>prevDiff)SaveData.set(diffKey,this.finalScore);
+        SaveData.set('totalCoins',SaveData.get('totalCoins')+this.coins);
         this.time.delayedCall(800,()=>{audio.playGameOver();this._showGameOver(isNew);});}
 
     _showGameOver(isNew){
         this.add.rectangle(GAME_W/2,GAME_H/2,GAME_W,GAME_H,0x000000,0.7).setDepth(200);
         const py=80;
-        this.add.rectangle(GAME_W/2,py,210,120,0x222244,0.9).setDepth(201).setStrokeStyle(2,0x4444aa);
-        this.add.text(GAME_W/2,py-45,'GAME OVER',{fontSize:'14px',fontFamily:'monospace',color:'#FF4444',stroke:'#000',strokeThickness:2}).setOrigin(0.5).setDepth(202);
-        if(isNew)this.add.text(GAME_W/2,py-28,'NEW BEST!',{fontSize:'10px',fontFamily:'monospace',color:'#FFD700'}).setOrigin(0.5).setDepth(202);
-        ['Distance: '+Math.floor(this.distance)+'m','Coins: +$'+this.coins,'Best: '+SaveData.get('highscore')+'m'].forEach((s,i)=>this.add.text(GAME_W/2,py-10+i*18,s,{fontSize:'9px',fontFamily:'monospace',color:'#ddd'}).setOrigin(0.5).setDepth(202));
+        this.add.rectangle(GAME_W/2,py,210,130,0x222244,0.9).setDepth(201).setStrokeStyle(2,0x4444aa);
+        this.add.text(GAME_W/2,py-50,'GAME OVER',{fontSize:'14px',fontFamily:'monospace',color:'#FF4444',stroke:'#000',strokeThickness:2}).setOrigin(0.5).setDepth(202);
+        if(this.diffModeIdx!==1)this.add.text(GAME_W/2,py-33,this.diffMode.label+' (x'+this.diffMode.scoreMult+')',{fontSize:'8px',fontFamily:'monospace',color:this.diffMode.color}).setOrigin(0.5).setDepth(202);
+        if(isNew)this.add.text(GAME_W/2,py-20,'NEW BEST!',{fontSize:'10px',fontFamily:'monospace',color:'#FFD700'}).setOrigin(0.5).setDepth(202);
+        ['Distance: '+Math.floor(this.distance)+'m','Score: '+this.finalScore,'Coins: +$'+this.coins,'Best: '+SaveData.get('highscore')].forEach((s,i)=>this.add.text(GAME_W/2,py-4+i*16,s,{fontSize:'9px',fontFamily:'monospace',color:'#ddd'}).setOrigin(0.5).setDepth(202));
 
         // Name entry for leaderboard
-        this.add.text(GAME_W/2,155,'ENTER YOUR NAME',{fontSize:'8px',fontFamily:'monospace',color:'#FFD700'}).setOrigin(0.5).setDepth(202);
-        const score=Math.floor(this.distance);
+        this.add.text(GAME_W/2,160,'ENTER YOUR NAME',{fontSize:'8px',fontFamily:'monospace',color:'#FFD700'}).setOrigin(0.5).setDepth(202);
+        const score=this.finalScore;
         const self=this;
-        showNameInput(this,GAME_W/2,172,202,(name,inputGroup)=>{
+        showNameInput(this,GAME_W/2,177,202,(name,inputGroup)=>{
             if(name){
-                Leaderboard.submit(name,score,'skateboard').then(()=>{
+                Leaderboard.submit(name,score,'skateboard',{difficulty:self.diffMode.key}).then(()=>{
                     inputGroup.forEach(o=>o.destroy());
                     self._showPostSubmitButtons();
                 });
