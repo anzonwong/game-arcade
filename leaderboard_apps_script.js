@@ -54,12 +54,19 @@ function getScores() {
 
   var scores = [];
   for (var i = 1; i < data.length; i++) {
+    var rawDate = data[i][4];
+    var dateStr = '';
+    if (rawDate instanceof Date) {
+      dateStr = rawDate.toISOString().slice(0, 10);
+    } else if (rawDate) {
+      dateStr = String(rawDate).slice(0, 10);
+    }
     scores.push({
       name: data[i][0],
       score: Number(data[i][1]),
       game: data[i][2],
       difficulty: data[i][3] || '',
-      date: data[i][4] || ''
+      date: dateStr
     });
   }
   scores.sort(function(a, b) { return b.score - a.score; });

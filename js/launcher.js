@@ -121,7 +121,7 @@ class LauncherScene extends Phaser.Scene {
             const nameStr = (entry.name || '???').substring(0, 10);
             const scoreStr = String(entry.score || 0);
             const gameStr = entry.game === 'skateboard' ? 'SK8' : entry.game === 'jumptotop' ? 'JTT' : '???';
-            const dateStr = entry.date ? entry.date.substring(5) : '';
+            const dateStr = entry.date ? entry.date.slice(0, 10).substring(5) : '';
 
             this.add.text(22, rowY, (i + 1) + '.', { fontSize: '7px', fontFamily: 'monospace', color: rankCol });
             this.add.text(34, rowY, nameStr, { fontSize: '7px', fontFamily: 'monospace', color: '#ddd' });
