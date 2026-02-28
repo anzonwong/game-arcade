@@ -51,14 +51,14 @@ SaveData.load();
 // ============================================================
 // To set up: deploy leaderboard_apps_script.js as a Google Apps Script Web App
 // then paste the URL below (ending in /exec)
-const LEADERBOARD_URL = '';  // SET THIS after deploying the Apps Script
+const LEADERBOARD_URL = 'https://script.google.com/macros/s/AKfycbzQZ8dcdADcRRhNQpuAYHRuKaDqhZS-SsIryPj7uJwD3R1BP75uaP8YdBrKp75e65iWGQ/exec';
 
 const Leaderboard = {
     _cache: null,
     async fetch() {
         if (!LEADERBOARD_URL) return this._cache || [];
         try {
-            const r = await fetch(LEADERBOARD_URL);
+            const r = await fetch(LEADERBOARD_URL, { redirect: 'follow' });
             if (!r.ok) throw new Error('fetch failed');
             const d = await r.json();
             this._cache = d.scores || [];
@@ -70,13 +70,13 @@ const Leaderboard = {
     async submit(name, score, game, extra) {
         if (!LEADERBOARD_URL) return false;
         try {
-            const body = { name, score, game };
-            if (extra && extra.difficulty) body.difficulty = extra.difficulty;
-            const r = await fetch(LEADERBOARD_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify(body)
+            // Use GET with query params to avoid POST redirect CORS issues
+            const params = new URLSearchParams({
+                action: 'submit', name, score, game,
+                difficulty: (extra && extra.difficulty) || ''
             });
+            const r = await fetch(LEADERBOARD_URL + '?' + params.toString(), { redirect: 'follow' });
+            if (!r.ok) throw new Error('submit failed');
             const d = await r.json();
             if (d.scores) this._cache = d.scores;
             return d.success || false;
